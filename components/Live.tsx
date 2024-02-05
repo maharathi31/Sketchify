@@ -1,13 +1,18 @@
 import useInterval from "@/hooks/useInterval";
 import { useBroadcastEvent, useEventListener, useMyPresence, useOthers } from "@/liveblocks.config";
 import { CursorMode, CursorState, Reaction, ReactionEvent } from "@/types/type";
-import { useCallback, useEffect, useState } from "react";
+import { MutableRefObject, useCallback, useEffect, useState } from "react";
 import CursorChat from "./cursor/CursorChat";
 import LiveCursors from "./cursor/LiveCursors";
 import FlyingReaction from "./reaction/FlyingReaction";
 import ReactionSelector from "./reaction/ReactionButton";
 
-const Live = () => {
+type Props = {
+  canvasRef: React.MutableRefObject<HTMLCanvasElement | null>;
+  undo: () => void;
+  redo: () => void;
+};
+const Live = ({canvasRef}:Props) => {
 
     /**
    * useOthers returns the list of other users in the room.
@@ -156,13 +161,14 @@ setCursorState({mode:CursorMode.Reaction,reaction,isPressed:false})
   },[])
 
   return <div
+  id="canvas"
   onPointerMove={handlePointerMove}
   onPointerLeave={handlePointerLeave}
   onPointerDown={handlePointerDown}
   onPointerUp={handlePointerUp}
   className="h-[100vh] w-full flex justify-center items-center text-center"
   >
-    <h1 className="text-5xl text-white">Figma Clone</h1>
+    <canvas ref={canvasRef}/>
 
   {/* Render the reactions */}
   {reaction.map((r) => (
