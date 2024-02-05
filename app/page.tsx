@@ -5,14 +5,16 @@ import Navbar from "@/components/Navbar";
 import RightSidebar from "@/components/RightSidebar";
 import { defaultNavElement } from "@/constants/index";
 import { handleCanvaseMouseMove, handleCanvasMouseDown, handleCanvasMouseUp, handleCanvasObjectModified, handleResize, initializeFabric, renderCanvas } from "@/lib/canvas";
-import { handleDelete } from "@/lib/key-events";
-import { useMutation, useStorage } from "@/liveblocks.config";
+import { handleDelete, handleKeyDown } from "@/lib/key-events";
+import { useMutation, useRedo, useStorage, useUndo } from "@/liveblocks.config";
 import { ActiveElement } from "@/types/type";
 import {fabric} from "fabric"
 import {useEffect, useRef, useState} from 'react'
 
 export default function Page() {
 
+  const undo=useUndo()
+  const redo=useRedo()
   const canvasRef=useRef<HTMLCanvasElement>(null)
   const fabricRef=useRef<fabric.Canvas | null>(null)
   const isDrawing=useRef(false)
@@ -31,9 +33,9 @@ export default function Page() {
     if(!canvasObjects || canvasObjects.size==0)
     return true
 
-    for(const[key] of canvasObjects.entries()){
-      canvasObjects.delete(key)
-    }
+    canvasObjects.forEach((value, key) => {
+      canvasObjects.delete(key);
+    });
 
     return canvasObjects.size==0
 
@@ -127,6 +129,17 @@ export default function Page() {
     handleResize({fabricRef})
   })
 
+  window.addEventListener("keydown",(e)=>{
+   handleKeyDown({
+    e,
+    canvas:fabricRef.current,
+    undo,
+    redo,
+    syncShapeInStorage,
+    deleteShapeFromStorage
+   })
+  })
+
   return ()=>{
     canvas.dispose()
   }
@@ -146,7 +159,7 @@ export default function Page() {
       activeElement={activeElement}
       handleActiveElement={handleActiveElement}/>
       <section className="flex h-full flex-row">
-      <LeftSidebar/>
+      <LeftSidebar allShapes={Array.from (canvasObjects)}/>
       <Live canvasRef={canvasRef}/>
       <RightSidebar/>
       </section>
