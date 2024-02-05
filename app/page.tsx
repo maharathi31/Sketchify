@@ -4,11 +4,11 @@ import Live from "@/components/Live";
 import Navbar from "@/components/Navbar";
 import RightSidebar from "@/components/RightSidebar";
 import { defaultNavElement } from "@/constants/index";
-import { handleCanvaseMouseMove, handleCanvasMouseDown, handleCanvasMouseUp, handleCanvasObjectModified, handleResize, initializeFabric, renderCanvas } from "@/lib/canvas";
+import { handleCanvaseMouseMove, handleCanvasMouseDown, handleCanvasMouseUp, handleCanvasObjectModified, handleCanvasObjectScaling, handleCanvasSelectionCreated, handleResize, initializeFabric, renderCanvas } from "@/lib/canvas";
 import { handleDelete, handleKeyDown } from "@/lib/key-events";
 import { handleImageUpload } from "@/lib/shapes";
 import { useMutation, useRedo, useStorage, useUndo } from "@/liveblocks.config";
-import { ActiveElement } from "@/types/type";
+import { ActiveElement, Attributes } from "@/types/type";
 import {fabric} from "fabric"
 import {useEffect, useRef, useState} from 'react'
 
@@ -23,12 +23,22 @@ export default function Page() {
   const selectedShapeRef=useRef<string | null>(null)
   const activeObjectRef=useRef<fabric.Object | null>(null)
   const imageInputRef=useRef<HTMLInputElement>(null)
+  const isEditingRef=useRef(true)
   const [activeElement,setActiveElement]=useState<ActiveElement>({
     name:'',
     value:'',
     icon:''
   })
+  const [elementAttributes,setElementAttributes]=useState<Attributes>({
+    width:'',
+    height:'',
+    fontSize:'',
+    fontFamily:'',
+    fontWeight:'',
+    fill:'#aabbcc',
+    stroke:'#aabbcc',
 
+  })
   const deleteAllShapes= useMutation(({storage})=>{
     const canvasObjects=storage.get('canvasObjects')
 
@@ -134,9 +144,17 @@ export default function Page() {
       })
     })
 
+    canvas.on("selection:created",(options)=>{
+      handleCanvasSelectionCreated({
+        options,
+        isEditingRef,
+        setElementAttributes,
+      })
+    })
 
+    
   window.addEventListener("resize",()=>{
-    handleResize({fabricRef})
+    handleResize({ fabricRef });
   })
 
   window.addEventListener("keydown",(e)=>{
@@ -182,7 +200,13 @@ export default function Page() {
       <section className="flex h-full flex-row">
       <LeftSidebar allShapes={Array.from (canvasObjects)}/>
       <Live canvasRef={canvasRef}/>
-      <RightSidebar/>
+      <RightSidebar
+      elementAttributes={elementAttributes}
+      setElementAttributes={setElementAttributes}
+      fabricRef={fabricRef}
+      isEditingRef={isEditingRef}
+      activeObjectRef={activeObjectRef}
+      syncShapeInStorage={syncShapeInStorage}/>
       </section>
       </div>
   );
