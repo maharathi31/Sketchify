@@ -6,6 +6,7 @@ import RightSidebar from "@/components/RightSidebar";
 import { defaultNavElement } from "@/constants/index";
 import { handleCanvaseMouseMove, handleCanvasMouseDown, handleCanvasMouseUp, handleCanvasObjectModified, handleResize, initializeFabric, renderCanvas } from "@/lib/canvas";
 import { handleDelete, handleKeyDown } from "@/lib/key-events";
+import { handleImageUpload } from "@/lib/shapes";
 import { useMutation, useRedo, useStorage, useUndo } from "@/liveblocks.config";
 import { ActiveElement } from "@/types/type";
 import {fabric} from "fabric"
@@ -19,8 +20,9 @@ export default function Page() {
   const fabricRef=useRef<fabric.Canvas | null>(null)
   const isDrawing=useRef(false)
   const shapeRef=useRef<fabric.Object | null>(null)
-  const selectedShapeRef=useRef<string | null>('rectangle')
+  const selectedShapeRef=useRef<string | null>(null)
   const activeObjectRef=useRef<fabric.Object | null>(null)
+  const imageInputRef=useRef<HTMLInputElement>(null)
   const [activeElement,setActiveElement]=useState<ActiveElement>({
     name:'',
     value:'',
@@ -75,6 +77,14 @@ export default function Page() {
       handleDelete(fabricRef.current as any,
         deleteShapeFromStorage) 
         setActiveElement(defaultNavElement)
+        break
+
+      case 'image':
+        imageInputRef.current?.click()
+        isDrawing.current=false
+        if(fabricRef.current){
+          fabricRef.current.isDrawingMode=false
+        }
       default:
         break
     }
@@ -157,7 +167,18 @@ export default function Page() {
       <div className="h-screen overflow-hidden">
       <Navbar
       activeElement={activeElement}
-      handleActiveElement={handleActiveElement}/>
+      handleActiveElement={handleActiveElement}
+      imageInputRef={imageInputRef}
+      handleImageUpload={(e:any)=>{
+        e.stopPropagation()
+
+        handleImageUpload({
+          file:e.target.files[0],
+          canvas:fabricRef as any,
+          shapeRef,
+          syncShapeInStorage
+        })
+      }}/>
       <section className="flex h-full flex-row">
       <LeftSidebar allShapes={Array.from (canvasObjects)}/>
       <Live canvasRef={canvasRef}/>
