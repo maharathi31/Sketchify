@@ -2,17 +2,26 @@ import useInterval from "@/hooks/useInterval";
 import { useBroadcastEvent, useEventListener, useMyPresence, useOthers } from "@/liveblocks.config";
 import { CursorMode, CursorState, Reaction, ReactionEvent } from "@/types/type";
 import { MutableRefObject, useCallback, useEffect, useState } from "react";
+import { Comments } from "./comments/Comments";
 import CursorChat from "./cursor/CursorChat";
 import LiveCursors from "./cursor/LiveCursors";
 import FlyingReaction from "./reaction/FlyingReaction";
 import ReactionSelector from "./reaction/ReactionButton";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu"
+import { shortcuts } from "@/constants/index";
+
 
 type Props = {
   canvasRef: React.MutableRefObject<HTMLCanvasElement | null>;
   undo: () => void;
   redo: () => void;
 };
-const Live = ({canvasRef}:Props) => {
+const Live = ({canvasRef,undo,redo}:Props) => {
 
     /**
    * useOthers returns the list of other users in the room.
@@ -160,13 +169,43 @@ const Live = ({canvasRef}:Props) => {
 setCursorState({mode:CursorMode.Reaction,reaction,isPressed:false})
   },[])
 
-  return <div
+  // trigger respective actions when the user clicks on the right menu
+  const handleContextMenuClick = useCallback((key: string) => {
+    switch (key) {
+      case "Chat":
+        setCursorState({
+          mode: CursorMode.Chat,
+          previousMessage: null,
+          message: "",
+        });
+        break;
+
+      case "Reactions":
+        setCursorState({ mode: CursorMode.ReactionSelector });
+        break;
+
+      case "Undo":
+        undo();
+        break;
+
+      case "Redo":
+        redo();
+        break;
+
+      default:
+        break;
+    }
+  }, []);
+
+  return (
+  <ContextMenu>
+  <ContextMenuTrigger
   id="canvas"
   onPointerMove={handlePointerMove}
   onPointerLeave={handlePointerLeave}
   onPointerDown={handlePointerDown}
   onPointerUp={handlePointerUp}
-  className="h-[100vh] w-full flex justify-center items-center text-center"
+  className="h-[100vh] w-full flex justify-center items-center"
   >
     <canvas ref={canvasRef}/>
 
@@ -191,8 +230,23 @@ setCursorState({mode:CursorMode.Reaction,reaction,isPressed:false})
       <ReactionSelector
       setReaction={setReactions}/>
     )}
-    <LiveCursors others={others}/>
-  </div>;
+    <LiveCursors/>
+    <Comments/>
+  </ContextMenuTrigger>;
+  <ContextMenuContent className="right-menu-content">
+        {shortcuts.map((item) => (
+          <ContextMenuItem
+            key={item.key}
+            className="right-menu-item"
+            onClick={() => handleContextMenuClick(item.name)}
+          >
+            <p>{item.name}</p>
+            <p className="text-xs text-primary-grey-300">{item.shortcut}</p>
+          </ContextMenuItem>
+        ))}
+      </ContextMenuContent>
+  </ContextMenu>
+  )
 };
 
 export default Live;
